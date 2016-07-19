@@ -1313,6 +1313,64 @@ byCpu
 	testStreamerWithOutput(t, "TestStream_GroupByWhere", script, 13*time.Second, er, nil, true)
 }
 
+func TestStream_GroupByMeasurement(t *testing.T) {
+
+	var script = `
+stream
+	|from()
+		.groupBy('service')
+		.groupByMeasurement()
+	|window()
+		.period(10s)
+		.every(10s)
+	|sum('value')
+	|httpOut('TestStream_GroupByMeasurement')
+`
+
+	er := kapacitor.Result{
+		Series: imodels.Rows{
+			{
+				Name:    "errors",
+				Tags:    map[string]string{"service": "cartA"},
+				Columns: []string{"time", "sum"},
+				Values: [][]interface{}{[]interface{}{
+					time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+					47.0,
+				}},
+			},
+			{
+				Name:    "errors",
+				Tags:    map[string]string{"service": "login"},
+				Columns: []string{"time", "sum"},
+				Values: [][]interface{}{[]interface{}{
+					time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+					45.0,
+				}},
+			},
+			{
+				Name:    "errors",
+				Tags:    map[string]string{"service": "front"},
+				Columns: []string{"time", "sum"},
+				Values: [][]interface{}{[]interface{}{
+					time.Date(1971, 1, 1, 0, 0, 11, 0, time.UTC),
+					32.0,
+				}},
+			},
+			{
+				Name:    "disk",
+				Tags:    map[string]string{"service": "sda"},
+				Columns: []string{"time", "sum"},
+				Values: [][]interface{}{[]interface{}{
+					time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
+					810.0,
+				}},
+			},
+		},
+	}
+
+	testStreamerWithOutput(t, "TestStream_GroupByMeasurement", script, 13*time.Second, er, nil, true)
+}
+
 func TestStream_Flatten(t *testing.T) {
 	var script = `
 stream
@@ -2323,22 +2381,23 @@ errorsByServiceGlobal
 func TestStream_Union(t *testing.T) {
 
 	var script = `
-var cpu = stream
+var cpuT = stream
 	|from()
 		.measurement('cpu')
 		.where(lambda: "cpu" == 'total')
-var mem = stream
+var cpu0 = stream
 	|from()
-		.measurement('memory')
-		.where(lambda: "type" == 'free')
-var disk = stream
+		.measurement('cpu')
+		.where(lambda: "cpu" == '0')
+var cpu1 = stream
 	|from()
-		.measurement('disk')
-		.where(lambda: "device" == 'sda')
+		.measurement('cpu')
+		.where(lambda: "cpu" == '1')
 
-cpu
-	|union(mem, disk)
-		.rename('cpu_mem_disk')
+cpuT
+	|union(cpu0, cpu1)
+		.rename('cpu_all')
+	|log()
 	|window()
 		.period(10s)
 		.every(10s)
@@ -2349,12 +2408,12 @@ cpu
 	er := kapacitor.Result{
 		Series: imodels.Rows{
 			{
-				Name:    "cpu_mem_disk",
+				Name:    "cpu_all",
 				Tags:    nil,
 				Columns: []string{"time", "count"},
 				Values: [][]interface{}{[]interface{}{
 					time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
-					24.0,
+					20.0,
 				}},
 			},
 		},
@@ -4381,7 +4440,7 @@ func TestStream_AlertAlerta(t *testing.T) {
 			if exp := "production"; pd.Environment != exp {
 				t.Errorf("unexpected environment got %s exp %s", pd.Environment, exp)
 			}
-			if exp := "host=serverA,"; pd.Group != exp {
+			if exp := ",host=serverA"; pd.Group != exp {
 				t.Errorf("unexpected group got %s exp %s", pd.Group, exp)
 			}
 			if exp := ""; pd.Value != exp {
@@ -4897,9 +4956,9 @@ func TestStream_AlertSigma(t *testing.T) {
 		rc := atomic.LoadInt32(&requestCount)
 		if rc := atomic.LoadInt32(&requestCount); rc == 1 {
 			expAd = kapacitor.AlertData{
-				ID:      "cpu:nil",
-				Message: "cpu:nil is INFO",
-				Details: "cpu:nil is INFO",
+				ID:      "cpu:",
+				Message: "cpu: is INFO",
+				Details: "cpu: is INFO",
 				Time:    time.Date(1971, 1, 1, 0, 0, 7, 0, time.UTC),
 				Level:   kapacitor.InfoAlert,
 				Data: influxql.Result{
@@ -4919,9 +4978,9 @@ func TestStream_AlertSigma(t *testing.T) {
 			}
 		} else {
 			expAd = kapacitor.AlertData{
-				ID:       "cpu:nil",
-				Message:  "cpu:nil is OK",
-				Details:  "cpu:nil is OK",
+				ID:       "cpu:",
+				Message:  "cpu: is OK",
+				Details:  "cpu: is OK",
 				Time:     time.Date(1971, 1, 1, 0, 0, 8, 0, time.UTC),
 				Duration: time.Second,
 				Level:    kapacitor.OKAlert,
@@ -4982,8 +5041,8 @@ func TestStream_AlertComplexWhere(t *testing.T) {
 		}
 		atomic.AddInt32(&requestCount, 1)
 		expAd := kapacitor.AlertData{
-			ID:      "cpu:nil",
-			Message: "cpu:nil is CRITICAL",
+			ID:      "cpu:",
+			Message: "cpu: is CRITICAL",
 			Details: "",
 			Time:    time.Date(1971, 1, 1, 0, 0, 7, 0, time.UTC),
 			Level:   kapacitor.CritAlert,
@@ -5066,16 +5125,16 @@ func TestStream_AlertStateChangesOnlyExpired(t *testing.T) {
 		rc := atomic.LoadInt32(&requestCount)
 		if rc < 6 {
 			expAd = kapacitor.AlertData{
-				ID:       "cpu:nil",
-				Message:  "cpu:nil is CRITICAL",
+				ID:       "cpu:",
+				Message:  "cpu: is CRITICAL",
 				Time:     time.Date(1971, 1, 1, 0, 0, int(rc)*2-1, 0, time.UTC),
 				Duration: time.Duration(rc-1) * 2 * time.Second,
 				Level:    kapacitor.CritAlert,
 			}
 		} else {
 			expAd = kapacitor.AlertData{
-				ID:       "cpu:nil",
-				Message:  "cpu:nil is OK",
+				ID:       "cpu:",
+				Message:  "cpu: is OK",
 				Time:     time.Date(1971, 1, 1, 0, 0, 10, 0, time.UTC),
 				Duration: 9 * time.Second,
 				Level:    kapacitor.OKAlert,

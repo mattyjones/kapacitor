@@ -32,8 +32,8 @@ func BatchPointFromPoint(p Point) BatchPoint {
 
 type Batch struct {
 	Name   string       `json:"name,omitempty"`
-	Group  GroupID      `json:"-"`
-	TMax   time.Time    `json:"-"`
+	Group  GroupID      `json:"group,omitempty"`
+	TMax   time.Time    `json:"tmax,omitempty"`
 	Tags   Tags         `json:"tags,omitempty"`
 	Points []BatchPoint `json:"points,omitempty"`
 }
@@ -91,7 +91,7 @@ func (b *Batch) SetNewDimTag(key string, value string) {
 }
 
 func (b *Batch) UpdateGroup() {
-	b.Group = TagsToGroupID(b.PointDimensions(), b.Tags)
+	b.Group = TagsToGroupID(b.Name, b.Tags, b.PointDimensions())
 }
 
 func BatchToRow(b Batch) (row *models.Row) {
@@ -130,15 +130,20 @@ func BatchToRow(b Batch) (row *models.Row) {
 	return
 }
 
-func ResultToBatches(res client.Result) ([]Batch, error) {
+func ResultToBatches(res client.Result, groupByName bool) ([]Batch, error) {
 	if res.Err != "" {
 		return nil, errors.New(res.Err)
 	}
 	batches := make([]Batch, 0, len(res.Series))
 	for _, series := range res.Series {
+		var name string
+		if groupByName {
+			name = series.Name
+		}
 		groupID := TagsToGroupID(
-			SortedKeys(series.Tags),
+			name,
 			series.Tags,
+			SortedKeys(series.Tags),
 		)
 		b := Batch{
 			Name:  series.Name,

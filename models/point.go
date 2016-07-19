@@ -113,7 +113,7 @@ func (p *Point) SetNewDimTag(key string, value string) {
 
 func (p *Point) UpdateGroup() {
 	sort.Strings(p.Dimensions)
-	p.Group = TagsToGroupID(p.Dimensions, p.Tags)
+	p.Group = TagsToGroupID(p.Name, p.Tags, p.Dimensions)
 }
 
 // Returns byte array of a line protocol representation of the point
@@ -149,16 +149,18 @@ func SortedKeys(tags map[string]string) []string {
 	return a
 }
 
-func TagsToGroupID(dims []string, tags map[string]string) GroupID {
+func TagsToGroupID(name string, tags map[string]string, dims []string) GroupID {
 	if len(dims) == 0 {
-		return NilGroup
+		return GroupID(name)
 	}
 	var buf bytes.Buffer
+	buf.WriteString(name)
 	for _, d := range dims {
+		buf.WriteString(",")
 		buf.WriteString(d)
 		buf.WriteString("=")
 		buf.WriteString(tags[d])
-		buf.WriteString(",")
+
 	}
 	return GroupID(buf.Bytes())
 }

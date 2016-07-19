@@ -124,7 +124,7 @@ func (s *Service) reportStats() {
 			Database:        s.db,
 			RetentionPolicy: s.rp,
 			Name:            stat.Name,
-			Group:           models.NilGroup,
+			Group:           models.TagsToGroupID(stat.Name, nil, nil),
 			Tags:            models.Tags(stat.Tags),
 			Time:            now,
 			Fields:          models.Fields(stat.Values),

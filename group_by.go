@@ -15,13 +15,15 @@ type GroupByNode struct {
 	g             *pipeline.GroupByNode
 	dimensions    []string
 	allDimensions bool
+	byName        bool
 }
 
 // Create a new GroupByNode which splits the stream dynamically based on the specified dimensions.
 func newGroupByNode(et *ExecutingTask, n *pipeline.GroupByNode, l *log.Logger) (*GroupByNode, error) {
 	gn := &GroupByNode{
-		node: node{Node: n, et: et, logger: l},
-		g:    n,
+		node:   node{Node: n, et: et, logger: l},
+		g:      n,
+		byName: n.ByMeasurementFlag,
 	}
 	gn.node.runF = gn.runGroupBy
 
@@ -34,7 +36,7 @@ func (g *GroupByNode) runGroupBy([]byte) error {
 	case pipeline.StreamEdge:
 		for pt, ok := g.ins[0].NextPoint(); ok; pt, ok = g.ins[0].NextPoint() {
 			g.timer.Start()
-			pt = setGroupOnPoint(pt, g.allDimensions, g.dimensions)
+			pt = setGroupOnPoint(pt, g.allDimensions, g.dimensions, g.byName)
 			g.timer.Stop()
 			for _, child := range g.outs {
 				err := child.CollectPoint(pt)
@@ -69,7 +71,11 @@ func (g *GroupByNode) runGroupBy([]byte) error {
 				} else {
 					dims = g.dimensions
 				}
-				groupID := models.TagsToGroupID(dims, p.Tags)
+				var name string
+				if g.byName {
+					name = b.Name
+				}
+				groupID := models.TagsToGroupID(name, p.Tags, dims)
 				group, ok := groups[groupID]
 				if !ok {
 					tags := make(map[string]string, len(dims))
@@ -105,11 +111,15 @@ func determineDimensions(dimensions []interface{}) (allDimensions bool, realDime
 	return
 }
 
-func setGroupOnPoint(p models.Point, allDimensions bool, dimensions []string) models.Point {
+func setGroupOnPoint(p models.Point, allDimensions bool, dimensions []string, includeName bool) models.Point {
 	if allDimensions {
 		dimensions = models.SortedKeys(p.Tags)
 	}
-	p.Group = models.TagsToGroupID(dimensions, p.Tags)
+	var name string
+	if includeName {
+		name = p.Name
+	}
+	p.Group = models.TagsToGroupID(name, p.Tags, dimensions)
 	p.Dimensions = dimensions
 	return p
 }

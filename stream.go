@@ -46,16 +46,19 @@ type FromNode struct {
 	db            string
 	rp            string
 	name          string
+
+	byName bool
 }
 
 // Create a new  FromNode which filters data from a source.
 func newFromNode(et *ExecutingTask, n *pipeline.FromNode, l *log.Logger) (*FromNode, error) {
 	sn := &FromNode{
-		node: node{Node: n, et: et, logger: l},
-		s:    n,
-		db:   n.Database,
-		rp:   n.RetentionPolicy,
-		name: n.Measurement,
+		node:   node{Node: n, et: et, logger: l},
+		s:      n,
+		db:     n.Database,
+		rp:     n.RetentionPolicy,
+		name:   n.Measurement,
+		byName: n.GroupByMeasurementFlag,
 	}
 	sn.node.runF = sn.runStream
 	sn.allDimensions, sn.dimensions = determineDimensions(n.Dimensions)
@@ -83,7 +86,7 @@ func (s *FromNode) runStream([]byte) error {
 			if s.s.Round != 0 {
 				pt.Time = pt.Time.Round(s.s.Round)
 			}
-			pt = setGroupOnPoint(pt, s.allDimensions, s.dimensions)
+			pt = setGroupOnPoint(pt, s.allDimensions, s.dimensions, s.byName)
 			s.timer.Pause()
 			for _, child := range s.outs {
 				err := child.CollectPoint(pt)

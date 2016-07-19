@@ -733,9 +733,6 @@ type detailsInfo struct {
 
 func (a *AlertNode) renderID(name string, group models.GroupID, tags models.Tags) (string, error) {
 	g := string(group)
-	if group == models.NilGroup {
-		g = "nil"
-	}
 	info := idInfo{
 		Name:     name,
 		TaskName: a.et.Task.ID,
@@ -757,9 +754,6 @@ func (a *AlertNode) renderID(name string, group models.GroupID, tags models.Tags
 
 func (a *AlertNode) renderMessageAndDetails(id, name string, t time.Time, group models.GroupID, tags models.Tags, fields models.Fields, level AlertLevel) (string, string, detailsInfo, error) {
 	g := string(group)
-	if group == models.NilGroup {
-		g = "nil"
-	}
 	minfo := messageInfo{
 		idInfo: idInfo{
 			Name:     name,

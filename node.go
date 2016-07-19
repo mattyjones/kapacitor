@@ -318,7 +318,7 @@ func (n *node) nodeStatsByGroup() (stats map[models.GroupID]nodeStats) {
 	}
 	if len(stats) == 0 {
 		// If we have no groups/stats add nil group with emitted = 0
-		stats[models.NilGroup] = nodeStats{
+		stats[""] = nodeStats{
 			Fields: models.Fields{
 				"emitted": int64(0),
 			},
