@@ -137,7 +137,7 @@ func (j *JoinNode) matchPoints(p srcPoint, groupErrs chan<- error) {
 		j.lowMark = t
 	}
 
-	groupId := models.TagsToGroupID(p.p.PointName(), p.p.PointTags(), j.j.Dimensions)
+	groupId := models.ToGroupID(p.p.PointName(), p.p.PointTags(), j.j.Dimensions)
 	if len(p.p.PointDimensions()) > len(j.j.Dimensions) {
 		// We have a specific point, find its cached match and send both to group
 		matches := j.matchGroupsBuffer[groupId]

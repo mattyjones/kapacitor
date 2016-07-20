@@ -91,7 +91,7 @@ func (b *Batch) SetNewDimTag(key string, value string) {
 }
 
 func (b *Batch) UpdateGroup() {
-	b.Group = TagsToGroupID(b.Name, b.Tags, b.PointDimensions())
+	b.Group = ToGroupID(b.Name, b.Tags, b.PointDimensions())
 }
 
 func BatchToRow(b Batch) (row *models.Row) {
@@ -140,7 +140,7 @@ func ResultToBatches(res client.Result, groupByName bool) ([]Batch, error) {
 		if groupByName {
 			name = series.Name
 		}
-		groupID := TagsToGroupID(
+		groupID := ToGroupID(
 			name,
 			series.Tags,
 			SortedKeys(series.Tags),

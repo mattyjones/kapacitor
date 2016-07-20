@@ -75,7 +75,7 @@ func (g *GroupByNode) runGroupBy([]byte) error {
 				if g.byName {
 					name = b.Name
 				}
-				groupID := models.TagsToGroupID(name, p.Tags, dims)
+				groupID := models.ToGroupID(name, p.Tags, dims)
 				group, ok := groups[groupID]
 				if !ok {
 					tags := make(map[string]string, len(dims))
@@ -119,7 +119,7 @@ func setGroupOnPoint(p models.Point, allDimensions bool, dimensions []string, in
 	if includeName {
 		name = p.Name
 	}
-	p.Group = models.TagsToGroupID(name, p.Tags, dimensions)
+	p.Group = models.ToGroupID(name, p.Tags, dimensions)
 	p.Dimensions = dimensions
 	return p
 }

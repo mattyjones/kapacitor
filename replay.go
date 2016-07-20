@@ -232,7 +232,7 @@ func readBatchFromIO(data io.ReadCloser, batches chan<- models.Batch) error {
 			continue
 		}
 		if b.Group == "" {
-			b.Group = models.TagsToGroupID("", b.Tags, models.SortedKeys(b.Tags))
+			b.Group = models.ToGroupID("", b.Tags, models.SortedKeys(b.Tags))
 		}
 		// Add tags to all points
 		if len(b.Tags) > 0 {

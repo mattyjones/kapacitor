@@ -23,7 +23,7 @@ func Benchmark_CollectPoint(b *testing.B) {
 			"tag3": "value3",
 			"tag4": "value4",
 		},
-		Group: models.TagsToGroupID(name, nil, nil),
+		Group: models.ToGroupID(name, nil, nil),
 		Fields: models.Fields{
 			"field1": 42,
 			"field2": 4.2,
